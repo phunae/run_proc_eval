@@ -12,6 +12,7 @@ The CSV file will be renamed with the following format:
 
 from os import path, mkdir, getcwd, replace
 from datetime import timedelta
+from custom_exceptions import CustomFileError
 
 class HandlingProcessReport:
     def __init__(self, proc_name, date, interval, total_time):
