@@ -14,6 +14,9 @@ class CustomCommandException(Exception):
 ...\nThis represents a time interval in seconds\n\
 run_proc_eval.py [path_to_process] [time_interval]'
 
+        else:
+            return '{}:{}'.format(type(self.error),self.error)
+
 class CustomProcessError(Exception):
     def __init__(self, error):
         self.error = error
