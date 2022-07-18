@@ -1,5 +1,5 @@
 import csv
-import os
+import subprocess
 from timeit import default_timer as timer
 from time import sleep
 from custom_exceptions import CustomEvalError
@@ -11,15 +11,15 @@ class GenerateProcessEvaluationReport():
             import psutil
             
         except ModuleNotFoundError as e:
-            install_module = input("This implementation uses the psutil module\
-to capture process information.\nDo you agree to install the module on this\
+            install_module = input("This implementation uses the psutil package\
+to capture process information.\nDo you agree to install the package on this\
 machine?\n(y/n)")
             
             if install_module in ('y','Y'): 
                 subprocess.run(["pip", "install", "psutil"], shell=True)
                 import psutil
             else:
-                raise(e, "\nThis program cannot run without the psutil module...")
+                raise(e, "\nThis program cannot run without the psutil package...")
             
         self.p_id = p_id
         self.process = psutil.Process(p_id)
