@@ -13,13 +13,15 @@ The CSV file will be renamed with the following format:
 from os import path, mkdir, getcwd, replace
 from datetime import timedelta
 from custom_exceptions import CustomFileError
+import csv
 
-class HandlingProcessReport:
+
+class HandlingReportFile:
     def __init__(self, proc_name, date, interval, total_time):
         self.proc_name = proc_name
         self.date = date
         self.interval = interval
-        self.total_time = total_time
+        self.total_time = total_time        
 
     def _file_naming(self):
         duration = str(timedelta(seconds=int(self.total_time))).replace(':','-')
@@ -45,7 +47,7 @@ class HandlingProcessReport:
                                        self._file_naming()))
 
         except Exception as e:
-            raise(CustomFileError(e))
+            raise(CustomFileError(e))   
 
     
         

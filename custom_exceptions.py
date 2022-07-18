@@ -44,7 +44,7 @@ class CustomFileError(Exception):
         self.error = error
 
     def __str__(self):
-        if self.error.__class__.__name__ in ('PermissionError'):
+        if self.error.__class__.__name__ == 'PermissionError':
             return 'Access is denied for this system path.\
 Copy the .py files to a folder with write permissions.'
 

@@ -38,20 +38,13 @@ python run_proc_eval.py "c:\windows\system32\mspaint.exe"
 import sys
 import subprocess
 import platform
-from time import sleep
 from timeit import default_timer as timer
-import csv
 from datetime import datetime
 
-from custom_exceptions import CustomCommandException, CustomProcessError, CustomEvalError
+from custom_exceptions import CustomCommandException, CustomProcessError
 
-from file_manager import HandlingProcessReport
-
-try:
-    import psutil    
-except ModuleNotFoundError as e:
-    subprocess.run(["pip", "install", "psutil"], shell=True)
-    import psutil
+from file_manager import HandlingReportFile
+from report_generator import GenerateProcessEvaluationReport
 
 
 def load_parameters(args = sys.argv[1:]):
@@ -68,85 +61,29 @@ def load_parameters(args = sys.argv[1:]):
     return path, interval
     
 
-def proc_run(path):
+def start_process(path):
     try:
         return subprocess.Popen(path)
     except Exception as e:
         raise CustomProcessError(e)
               
-def proc_eval(p, i, os_name):
-    """This is where the process evaluation values are being captured.
-    
-    The CPU percentage is retrieved as such:
-        - in Linux:
-        The returned value is not split evenly between all available CPUs.
-        This will result in values over 100% on systems where more than two CPU cores are installed.
-        (up to 800% for an 8 Core system)
-
-        - in Windows:
-        The returned values will be an average of the values we would get on Linux, 
-        against the total number of CPU cores.
-
-    The memory consumption information is displayed in MBs.
-
-    The open handles will be returned as integers.
-    """
-
-    if os_name == 'Linux':
-        n_hndl = p.num_fds
-        no_cpus = 1
-    elif os_name == 'Windows':
-        n_hndl = p.num_handles
-        no_cpus = psutil.cpu_count()
-
-    cpu = '{:.2f}'.format(p.cpu_percent(i) / no_cpus)
-    memory_s = '{:.1f}'.format(p.memory_info()[0] / (1024*1024))
-    memory_v = '{:.1f}'.format(p.memory_info()[1] / (1024*1024))
-    no_handles = n_hndl()
-    
-    return cpu, memory_s, memory_v, no_handles
-
 if __name__ == "__main__":
 
     path, interval = load_parameters()        
     os_name = platform.system()
 
-    if os_name == "Linux":
-        field_names = ['CPU(%)', 'MEM_RSS(MB)', 'MEM_VMS(MB)', 'NO_FDs']
+    if os_name not in ('Linux', 'Windows'):
+        raise Exception("This tool is only supported on Linux and Windows")
 
-    elif os_name == "Windows":
-        field_names = ['CPU(%)', 'MEM_WS(MB)', 'MEM_PRVT(MB)', 'NO_OPN_HNDLS']
-
-    else: raise Exception("This tool is only supported on Linux and Windows")
+    date = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
        
-    p = proc_run(path)  
-    proc = psutil.Process(p.pid)
-    proc_name = proc.name()
+    p = start_process(path)  
 
+    rg = GenerateProcessEvaluationReport(p.pid, interval/2, os_name)
 
-    with open("report.csv", "w", newline="") as file:
-        writer = csv.writer(file)
-        writer.writerow(field_names)
+    rg.process_eval()
 
-        time_init = timer()
-        date = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
-
-        while p.poll() is None:
-            try:
-                cpu, memory_s, memory_v, no_handles = proc_eval(proc, interval/2, os_name)
-            except Exception as e:
-                print(CustomEvalError(e))
-                break
-
-            print(cpu, memory_s, memory_v, no_handles)
-
-            writer.writerow([cpu, memory_s, memory_v, no_handles])
-            
-            sleep(float(interval)/2)
-
-        total_time = timer() - time_init
-
-    handle_report = HandlingProcessReport(proc_name, date, interval, total_time)
+    handle_report = HandlingReportFile(rg.process_name, date, interval, rg.total_time)
 
     handle_report.move_file()
 
